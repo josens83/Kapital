@@ -1,0 +1,48 @@
+{
+  "name": "@kapital/mobile",
+  "version": "0.0.1",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "build:android": "eas build --platform android",
+    "build:ios": "eas build --platform ios",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kapital/db": "*",
+    "@kapital/utils": "*",
+    "@react-navigation/native": "^6.1.9",
+    "@supabase/supabase-js": "^2.39.0",
+    "expo": "~50.0.0",
+    "expo-auth-session": "~5.4.0",
+    "expo-crypto": "~12.8.0",
+    "expo-font": "~11.10.0",
+    "expo-linking": "~6.2.0",
+    "expo-local-authentication": "~13.8.0",
+    "expo-router": "~3.4.0",
+    "expo-secure-store": "~12.8.0",
+    "expo-splash-screen": "~0.26.0",
+    "expo-status-bar": "~1.11.0",
+    "expo-web-browser": "~12.8.0",
+    "nativewind": "^2.0.11",
+    "react": "18.2.0",
+    "react-native": "0.73.0",
+    "react-native-gesture-handler": "~2.14.0",
+    "react-native-reanimated": "~3.6.0",
+    "react-native-safe-area-context": "4.8.2",
+    "react-native-screens": "~3.29.0",
+    "react-native-svg": "14.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@kapital/tsconfig": "*",
+    "@types/react": "~18.2.45",
+    "eslint": "^8.55.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.3"
+  }
+}

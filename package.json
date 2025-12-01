@@ -1,0 +1,31 @@
+{
+  "name": "kapital",
+  "version": "1.0.0",
+  "private": true,
+  "description": "복식부기 기반 개인 재무관리 앱 - 웹/iOS/Android",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@kapital/web",
+    "dev:mobile": "turbo run dev --filter=@kapital/mobile",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=@kapital/web",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:migrate": "turbo run db:migrate --filter=@kapital/db",
+    "db:seed": "turbo run db:seed --filter=@kapital/db",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "npm@10.2.0",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
