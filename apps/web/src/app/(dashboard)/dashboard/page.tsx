@@ -1,37 +1,22 @@
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle, Progress } from '@kapital/ui';
-import { formatCurrency, formatPercent, getChangeIcon } from '@kapital/utils';
+import { formatCurrency, formatPercent } from '@kapital/utils';
 import { TrendingUp, TrendingDown, Wallet, ArrowDownRight, ArrowUpRight, Target } from 'lucide-react';
 import { NetWorthChart } from '@/components/charts/net-worth-chart';
 import { ExpenseCategoryChart } from '@/components/charts/expense-category-chart';
 import { RecentTransactions } from '@/components/recent-transactions';
+import { getDashboardData, getDemoData } from '@/lib/dashboard-data';
 
 export default async function DashboardPage() {
-  // 데모 데이터 (실제로는 Supabase에서 가져옴)
-  const dashboardData = {
-    net_worth: 45230000,
-    net_worth_change: 1020000,
-    net_worth_change_percent: 2.3,
-    month_income: 5400000,
-    month_expenses: 3200000,
-    month_budget: 4000000,
-    expense_by_category: [
-      { category: '식비', amount: 650000, percentage: 20.3, color: '#F97316' },
-      { category: '주거비', amount: 1000000, percentage: 31.3, color: '#8B5CF6' },
-      { category: '교통비', amount: 200000, percentage: 6.3, color: '#3B82F6' },
-      { category: '쇼핑', amount: 350000, percentage: 10.9, color: '#EC4899' },
-      { category: '여가/문화', amount: 400000, percentage: 12.5, color: '#A855F7' },
-      { category: '기타', amount: 600000, percentage: 18.8, color: '#6B7280' },
-    ],
-    recent_transactions: [
-      { id: '1', date: '2025-01-15', description: '스타벅스', amount: -6500, account_name: '신한카드', category_name: '식비', icon: '☕', type: 'expense' as const },
-      { id: '2', date: '2025-01-15', description: '점심 식사', amount: -9000, account_name: '현금', category_name: '식비', icon: '🍚', type: 'expense' as const },
-      { id: '3', date: '2025-01-14', description: '급여 입금', amount: 4500000, account_name: '국민은행', category_name: '급여', icon: '💰', type: 'income' as const },
-      { id: '4', date: '2025-01-13', description: '넷플릭스', amount: -17000, account_name: '신한카드', category_name: '구독서비스', icon: '📺', type: 'expense' as const },
-      { id: '5', date: '2025-01-12', description: '마트 장보기', amount: -87000, account_name: '신한카드', category_name: '식료품', icon: '🛒', type: 'expense' as const },
-    ],
-  };
+  let dashboardData;
+
+  try {
+    dashboardData = await getDashboardData();
+  } catch (error) {
+    // Supabase 연결 실패 시 데모 데이터 사용
+    console.error('Failed to fetch dashboard data:', error);
+    dashboardData = getDemoData();
+  }
 
   const budgetUsagePercent = (dashboardData.month_expenses / dashboardData.month_budget) * 100;
 

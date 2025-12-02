@@ -1,10 +1,12 @@
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { formatCurrency, formatPercent } from '@kapital/utils';
+import { useDashboard } from '../../hooks/useDashboard';
 
-// 데모 데이터
-const dashboardData = {
+// 데모 데이터 (Supabase 미연결 시)
+const demoData = {
   net_worth: 45230000,
   net_worth_change_percent: 2.3,
   month_income: 5400000,
@@ -20,15 +22,28 @@ const dashboardData = {
 };
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const { data, loading, refetch } = useDashboard();
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = async () => {
+  // 데이터가 없으면 데모 데이터 사용
+  const dashboardData = data.recent_transactions.length > 0 ? data : demoData;
+
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // TODO: 데이터 새로고침
-    setTimeout(() => setRefreshing(false), 1000);
-  };
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   const budgetUsage = (dashboardData.month_expenses / dashboardData.month_budget) * 100;
+
+  if (loading && !refreshing) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#6366F1" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -50,8 +65,8 @@ export default function HomeScreen() {
             {formatCurrency(dashboardData.net_worth)}
           </Text>
           <View className="flex-row items-center mt-2">
-            <Text className="text-emerald-300 text-sm">
-              ▲ {formatPercent(dashboardData.net_worth_change_percent, { showSign: true })}
+            <Text className={`text-sm ${dashboardData.net_worth_change_percent >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+              {dashboardData.net_worth_change_percent >= 0 ? '▲' : '▼'} {formatPercent(Math.abs(dashboardData.net_worth_change_percent), { showSign: false })}
             </Text>
             <Text className="text-white/60 text-sm ml-2">전월 대비</Text>
           </View>
@@ -98,35 +113,41 @@ export default function HomeScreen() {
         <View className="mx-5 mt-6 mb-6">
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-lg font-semibold text-gray-900">최근 거래</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/transactions')}>
               <Text className="text-primary-600 text-sm">모두 보기</Text>
             </TouchableOpacity>
           </View>
 
           <View className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {dashboardData.recent_transactions.map((transaction, index) => (
-              <TouchableOpacity
-                key={transaction.id}
-                className={`flex-row items-center p-4 ${
-                  index < dashboardData.recent_transactions.length - 1 ? 'border-b border-gray-100' : ''
-                }`}
-              >
-                <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
-                  <Text className="text-lg">{transaction.icon}</Text>
-                </View>
-                <View className="flex-1 ml-3">
-                  <Text className="text-gray-900 font-medium">{transaction.description}</Text>
-                  <Text className="text-gray-500 text-sm">{transaction.category}</Text>
-                </View>
-                <Text
-                  className={`font-semibold ${
-                    transaction.amount > 0 ? 'text-emerald-500' : 'text-gray-900'
+            {dashboardData.recent_transactions.length === 0 ? (
+              <View className="p-6 items-center">
+                <Text className="text-gray-400">거래 내역이 없습니다</Text>
+              </View>
+            ) : (
+              dashboardData.recent_transactions.map((transaction, index) => (
+                <TouchableOpacity
+                  key={transaction.id}
+                  className={`flex-row items-center p-4 ${
+                    index < dashboardData.recent_transactions.length - 1 ? 'border-b border-gray-100' : ''
                   }`}
                 >
-                  {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
+                    <Text className="text-lg">{transaction.icon}</Text>
+                  </View>
+                  <View className="flex-1 ml-3">
+                    <Text className="text-gray-900 font-medium">{transaction.description}</Text>
+                    <Text className="text-gray-500 text-sm">{transaction.category}</Text>
+                  </View>
+                  <Text
+                    className={`font-semibold ${
+                      transaction.amount > 0 ? 'text-emerald-500' : 'text-gray-900'
+                    }`}
+                  >
+                    {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </View>
       </ScrollView>
@@ -135,6 +156,7 @@ export default function HomeScreen() {
       <TouchableOpacity
         className="absolute bottom-6 right-5 w-14 h-14 bg-primary-600 rounded-full items-center justify-center shadow-lg"
         style={{ elevation: 5 }}
+        onPress={() => router.push('/transactions/new')}
       >
         <Text className="text-white text-2xl">+</Text>
       </TouchableOpacity>

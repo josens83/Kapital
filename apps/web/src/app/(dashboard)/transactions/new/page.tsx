@@ -1,42 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from '@kapital/ui';
+import { Button, Card, CardContent, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger } from '@kapital/ui';
 import { getTodayISO } from '@kapital/utils';
-import { ArrowLeft, Plus, Minus, ArrowLeftRight } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, ArrowLeftRight, Loader2 } from 'lucide-react';
 
-// 데모 계정 데이터
-const accounts = {
+interface Account {
+  id: string;
+  name: string;
+  icon: string;
+  account_type: string;
+}
+
+interface AccountsGrouped {
+  asset: Account[];
+  liability: Account[];
+  income: Account[];
+  expense: Account[];
+}
+
+// 기본 데모 계정 (API 로딩 전 또는 실패 시)
+const defaultAccounts: AccountsGrouped = {
   asset: [
-    { id: '1', name: '현금', icon: '💵' },
-    { id: '2', name: '국민은행', icon: '🏦' },
-    { id: '3', name: '신한은행', icon: '🏦' },
+    { id: 'demo-1', name: '현금', icon: '💵', account_type: 'ASSET' },
+    { id: 'demo-2', name: '국민은행', icon: '🏦', account_type: 'ASSET' },
   ],
   liability: [
-    { id: '4', name: '신한카드', icon: '💳' },
-    { id: '5', name: '삼성카드', icon: '💳' },
+    { id: 'demo-3', name: '신한카드', icon: '💳', account_type: 'LIABILITY' },
   ],
   income: [
-    { id: '6', name: '급여', icon: '💼' },
-    { id: '7', name: '보너스', icon: '🎁' },
-    { id: '8', name: '부업/프리랜서', icon: '💻' },
-    { id: '9', name: '투자수익', icon: '📈' },
-    { id: '10', name: '기타수익', icon: '✨' },
+    { id: 'demo-4', name: '급여', icon: '💼', account_type: 'INCOME' },
+    { id: 'demo-5', name: '부업/프리랜서', icon: '💻', account_type: 'INCOME' },
   ],
   expense: [
-    { id: '11', name: '식비', icon: '🍽️' },
-    { id: '12', name: '식료품', icon: '🛒' },
-    { id: '13', name: '교통비', icon: '🚗' },
-    { id: '14', name: '주거비', icon: '🏠' },
-    { id: '15', name: '공과금', icon: '💡' },
-    { id: '16', name: '통신비', icon: '📱' },
-    { id: '17', name: '의료비', icon: '🏥' },
-    { id: '18', name: '교육비', icon: '📚' },
-    { id: '19', name: '여가/문화', icon: '🎬' },
-    { id: '20', name: '쇼핑', icon: '🛍️' },
-    { id: '21', name: '구독서비스', icon: '📺' },
-    { id: '22', name: '기타비용', icon: '📦' },
+    { id: 'demo-6', name: '식비', icon: '🍽️', account_type: 'EXPENSE' },
+    { id: 'demo-7', name: '교통비', icon: '🚗', account_type: 'EXPENSE' },
+    { id: 'demo-8', name: '주거비', icon: '🏠', account_type: 'EXPENSE' },
+    { id: 'demo-9', name: '쇼핑', icon: '🛍️', account_type: 'EXPENSE' },
   ],
 };
 
@@ -44,6 +45,8 @@ type TransactionType = 'expense' | 'income' | 'transfer';
 
 export default function NewTransactionPage() {
   const router = useRouter();
+  const [accounts, setAccounts] = useState<AccountsGrouped>(defaultAccounts);
+  const [accountsLoading, setAccountsLoading] = useState(true);
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -52,26 +55,58 @@ export default function NewTransactionPage() {
   const [toAccount, setToAccount] = useState('');
   const [memo, setMemo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 계정 목록 로드
+  useEffect(() => {
+    async function loadAccounts() {
+      try {
+        const res = await fetch('/api/accounts');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.asset?.length || data.expense?.length) {
+            setAccounts(data);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load accounts:', err);
+      } finally {
+        setAccountsLoading(false);
+      }
+    }
+    loadAccounts();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
 
-    // TODO: Supabase에 저장
-    console.log({
-      type,
-      amount: parseFloat(amount),
-      description,
-      date,
-      fromAccount,
-      toAccount,
-      memo,
-    });
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          amount: parseFloat(amount),
+          description,
+          date,
+          fromAccount,
+          toAccount,
+          memo,
+        }),
+      });
 
-    // 데모: 1초 후 목록으로 이동
-    setTimeout(() => {
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || '저장에 실패했습니다.');
+      }
+
       router.push('/transactions');
-    }, 1000);
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
   };
 
   const paymentAccounts = [...accounts.asset, ...accounts.liability];
@@ -93,6 +128,13 @@ export default function NewTransactionPage() {
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+                {error}
+              </div>
+            )}
+
             {/* Transaction Type Tabs */}
             <Tabs value={type} onValueChange={(v) => setType(v as TransactionType)}>
               <TabsList className="grid w-full grid-cols-3">
@@ -159,21 +201,27 @@ export default function NewTransactionPage() {
               <Label>
                 {type === 'expense' ? '결제 수단' : type === 'income' ? '입금 계좌' : '출금 계좌'}
               </Label>
-              <Select value={fromAccount} onValueChange={setFromAccount}>
-                <SelectTrigger>
-                  <SelectValue placeholder="계좌를 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      <span className="flex items-center gap-2">
-                        <span>{account.icon}</span>
-                        <span>{account.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {accountsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                </div>
+              ) : (
+                <Select value={fromAccount} onValueChange={setFromAccount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="계좌를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        <span className="flex items-center gap-2">
+                          <span>{account.icon}</span>
+                          <span>{account.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* To Account (Category or Transfer Target) */}
@@ -181,32 +229,38 @@ export default function NewTransactionPage() {
               <Label>
                 {type === 'transfer' ? '입금 계좌' : '카테고리'}
               </Label>
-              <Select value={toAccount} onValueChange={setToAccount}>
-                <SelectTrigger>
-                  <SelectValue placeholder={type === 'transfer' ? '입금 계좌를 선택하세요' : '카테고리를 선택하세요'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {type === 'transfer' ? (
-                    paymentAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        <span className="flex items-center gap-2">
-                          <span>{account.icon}</span>
-                          <span>{account.name}</span>
-                        </span>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    categoryAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        <span className="flex items-center gap-2">
-                          <span>{account.icon}</span>
-                          <span>{account.name}</span>
-                        </span>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              {accountsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                </div>
+              ) : (
+                <Select value={toAccount} onValueChange={setToAccount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={type === 'transfer' ? '입금 계좌를 선택하세요' : '카테고리를 선택하세요'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {type === 'transfer' ? (
+                      paymentAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{account.icon}</span>
+                            <span>{account.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      categoryAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{account.icon}</span>
+                            <span>{account.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Memo */}

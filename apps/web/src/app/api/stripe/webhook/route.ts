@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { stripe } from '@/lib/stripe';
+import { stripe, getStripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
-// Admin 클라이언트 (서비스 롤 키 사용)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy admin client initialization
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
@@ -96,6 +98,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.supabase_user_id;
   if (!userId) return;
 
+  const supabaseAdmin = getSupabaseAdmin();
   await supabaseAdmin
     .from('users')
     .update({
@@ -107,12 +110,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  // 결제 성공 로깅 또는 이메일 발송
   console.log('Invoice paid:', invoice.id);
 }
 
 async function handleInvoiceFailed(invoice: Stripe.Invoice) {
-  // 결제 실패 알림
   console.log('Invoice failed:', invoice.id);
 }
 
@@ -120,7 +121,6 @@ async function updateUserSubscription(
   userId: string,
   subscription: Stripe.Subscription
 ) {
-  // 플랜 결정 (가격 ID 기반)
   const priceId = subscription.items.data[0]?.price.id;
   let tier: 'free' | 'premium' | 'premium_plus' = 'free';
 
@@ -130,9 +130,9 @@ async function updateUserSubscription(
     tier = 'premium';
   }
 
-  // 구독 상태 확인
   const isActive = ['active', 'trialing'].includes(subscription.status);
 
+  const supabaseAdmin = getSupabaseAdmin();
   await supabaseAdmin
     .from('users')
     .update({
