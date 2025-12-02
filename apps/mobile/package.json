@@ -15,6 +15,7 @@
   "dependencies": {
     "@kapital/db": "*",
     "@kapital/utils": "*",
+    "@react-native-async-storage/async-storage": "1.21.0",
     "@react-navigation/native": "^6.1.9",
     "@supabase/supabase-js": "^2.39.0",
     "expo": "~50.0.0",
@@ -23,6 +24,7 @@
     "expo-font": "~11.10.0",
     "expo-linking": "~6.2.0",
     "expo-local-authentication": "~13.8.0",
+    "expo-notifications": "~0.27.0",
     "expo-router": "~3.4.0",
     "expo-secure-store": "~12.8.0",
     "expo-splash-screen": "~0.26.0",
@@ -32,10 +34,12 @@
     "react": "18.2.0",
     "react-native": "0.73.0",
     "react-native-gesture-handler": "~2.14.0",
+    "react-native-purchases": "^7.0.0",
     "react-native-reanimated": "~3.6.0",
     "react-native-safe-area-context": "4.8.2",
     "react-native-screens": "~3.29.0",
-    "react-native-svg": "14.1.0"
+    "react-native-svg": "14.1.0",
+    "react-native-url-polyfill": "^2.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
