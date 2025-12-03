@@ -43,6 +43,15 @@ function ChartIcon({ color }: { color: string }) {
   );
 }
 
+function PieChartIcon({ color }: { color: string }) {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+      <Path d="M21.21 15.89A10 10 0 118 2.83" />
+      <Path d="M22 12A10 10 0 0012 2v10z" />
+    </Svg>
+  );
+}
+
 function SettingsIcon({ color }: { color: string }) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
@@ -92,6 +101,13 @@ export default function TabLayout() {
         options={{
           title: '계정',
           tabBarIcon: ({ color }) => <WalletIcon color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="budgets"
+        options={{
+          title: '예산',
+          tabBarIcon: ({ color }) => <PieChartIcon color={color} />,
         }}
       />
       <Tabs.Screen
