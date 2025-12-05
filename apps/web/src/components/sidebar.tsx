@@ -9,6 +9,7 @@ import {
   Wallet,
   FileText,
   Target,
+  Repeat,
   Settings,
   HelpCircle,
 } from 'lucide-react';
@@ -17,6 +18,7 @@ const navigation = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
   { name: '거래내역', href: '/transactions', icon: ArrowLeftRight },
   { name: '계정관리', href: '/accounts', icon: Wallet },
+  { name: '반복거래', href: '/recurring', icon: Repeat },
   { name: '재무제표', href: '/reports', icon: FileText },
   { name: '예산', href: '/budgets', icon: Target },
   { name: '설정', href: '/settings', icon: Settings },

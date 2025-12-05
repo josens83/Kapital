@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Avatar, AvatarFallback, AvatarImage } from '@kapital/ui';
-import { User, Globe, CreditCard, Bell, Shield, Database, LogOut, ChevronRight, Check, Crown } from 'lucide-react';
+import { User, Globe, CreditCard, Bell, Shield, Database, LogOut, ChevronRight, Check, Crown, Palette } from 'lucide-react';
+import Link from 'next/link';
 import { PLANS } from '@/lib/stripe';
 
 export default function SettingsPage() {
@@ -250,6 +251,20 @@ export default function SettingsPage() {
       {/* Other Settings */}
       <Card>
         <CardContent className="p-0">
+          <Link href="/settings/profile" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
+            <div className="flex items-center gap-3">
+              <User className="h-5 w-5 text-gray-400" />
+              <span>프로필 수정</span>
+            </div>
+            <ChevronRight className="h-5 w-5 text-gray-400" />
+          </Link>
+          <Link href="/settings/appearance" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
+            <div className="flex items-center gap-3">
+              <Palette className="h-5 w-5 text-gray-400" />
+              <span>테마 설정</span>
+            </div>
+            <ChevronRight className="h-5 w-5 text-gray-400" />
+          </Link>
           <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
             <div className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-gray-400" />
@@ -264,13 +279,13 @@ export default function SettingsPage() {
             </div>
             <ChevronRight className="h-5 w-5 text-gray-400" />
           </button>
-          <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
+          <Link href="/settings/export" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
             <div className="flex items-center gap-3">
               <Database className="h-5 w-5 text-gray-400" />
               <span>데이터 내보내기</span>
             </div>
             <ChevronRight className="h-5 w-5 text-gray-400" />
-          </button>
+          </Link>
           <button
             onClick={handleSignOut}
             className="w-full flex items-center justify-between p-4 hover:bg-red-50 transition-colors text-red-500"
