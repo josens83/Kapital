@@ -1,14 +1,14 @@
 import { Stack } from 'expo-router';
 
-export default function SettingsLayout() {
+export default function RecurringLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
       }}
     >
-      <Stack.Screen name="notifications" />
-      <Stack.Screen name="security" />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="new" />
     </Stack>
   );
 }
