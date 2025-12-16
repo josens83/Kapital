@@ -1,5 +1,8 @@
 # Kapital CI Pipeline
-# 챕터 5: CI/CD 파이프라인 구축 기반
+# 챕터 5: CI/CD 파이프라인 구축 (고급)
+# - 병렬 실행으로 빌드 시간 단축
+# - 아티팩트를 통한 의존성 공유
+# - 실패 시 알림
 
 name: CI
 
@@ -10,27 +13,25 @@ on:
     branches: [main, develop]
 
 env:
-  # 빌드 시 환경변수 검증 건너뛰기
+  NODE_VERSION: '20'
   SKIP_ENV_VALIDATION: true
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
-  # Job 1: 린트 & 타입 체크
+  # Job 1: 의존성 설치 (다른 작업들이 재사용)
   # ═══════════════════════════════════════════════════════════════
-  lint-and-typecheck:
-    name: Lint & Type Check
+  install:
+    name: 📦 의존성 설치
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       # Turborepo 캐시
@@ -45,19 +46,51 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint
-        run: npm run lint
+      # node_modules를 아티팩트로 저장
+      - name: Upload node_modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: node_modules
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+            .turbo
+          retention-days: 1
+
+  # ═══════════════════════════════════════════════════════════════
+  # Job 2: 타입 체크 (병렬)
+  # ═══════════════════════════════════════════════════════════════
+  typecheck:
+    name: 🔍 타입 체크
+    needs: install
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download node_modules
+        uses: actions/download-artifact@v4
+        with:
+          name: node_modules
+          path: .
 
       - name: Run TypeScript check
         run: npm run typecheck
 
   # ═══════════════════════════════════════════════════════════════
-  # Job 2: 빌드 테스트
+  # Job 3: 린트 검사 (병렬)
   # ═══════════════════════════════════════════════════════════════
-  build:
-    name: Build
+  lint:
+    name: 📋 린트 검사
+    needs: install
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
 
     steps:
       - name: Checkout
@@ -66,31 +99,70 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
 
-      # Turborepo 캐시
-      - name: Setup Turbo cache
-        uses: actions/cache@v4
+      - name: Download node_modules
+        uses: actions/download-artifact@v4
         with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
+          name: node_modules
+          path: .
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # ═══════════════════════════════════════════════════════════════
+  # Job 4: 보안 검사 (병렬)
+  # ═══════════════════════════════════════════════════════════════
+  security:
+    name: 🔒 보안 검사
+    needs: install
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ═══════════════════════════════════════════════════════════════
+  # Job 5: 빌드 테스트 (typecheck, lint 모두 통과 후)
+  # ═══════════════════════════════════════════════════════════════
+  build:
+    name: 🏗️ 빌드
+    needs: [typecheck, lint]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download node_modules
+        uses: actions/download-artifact@v4
+        with:
+          name: node_modules
+          path: .
 
       # Next.js 빌드 캐시
       - name: Cache Next.js build
         uses: actions/cache@v4
         with:
-          path: |
-            apps/web/.next/cache
+          path: apps/web/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('apps/web/**/*.ts', 'apps/web/**/*.tsx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
             ${{ runner.os }}-nextjs-
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Build web application
         run: npm run build:web
@@ -99,23 +171,57 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
 
+      # 빌드 결과물 저장 (배포 워크플로우에서 재사용 가능)
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
+          retention-days: 7
+
   # ═══════════════════════════════════════════════════════════════
-  # Job 3: 보안 검사 (의존성 취약점)
+  # Job 6: 실패 알림 (Discord/Slack)
   # ═══════════════════════════════════════════════════════════════
-  security:
-    name: Security Audit
+  notify-failure:
+    name: 📢 실패 알림
+    needs: [typecheck, lint, build]
+    if: failure()
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # Discord 알림 (DISCORD_WEBHOOK secret 설정 시 활성화)
+      - name: Discord 알림
+        if: ${{ secrets.DISCORD_WEBHOOK != '' }}
+        uses: sarisia/actions-status-discord@v1
         with:
-          node-version: '20'
-          cache: 'npm'
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          title: "CI 실패"
+          description: |
+            **Repository:** ${{ github.repository }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+            **Author:** ${{ github.actor }}
+          color: 0xff0000
 
-      - name: Run npm audit
-        run: npm audit --audit-level=high
-        continue-on-error: true  # 경고만 표시, 빌드 중단 안 함
+      # Slack 알림 (SLACK_WEBHOOK secret 설정 시 활성화)
+      - name: Slack 알림
+        if: ${{ secrets.SLACK_WEBHOOK != '' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      # 알림 설정 없을 때 콘솔 출력
+      - name: CI 실패 요약
+        run: |
+          echo "❌ CI 파이프라인이 실패했습니다."
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo ""
+          echo "💡 Discord/Slack 알림을 받으려면 다음 Secrets를 설정하세요:"
+          echo "   - DISCORD_WEBHOOK"
+          echo "   - SLACK_WEBHOOK"

@@ -1,5 +1,9 @@
 # Kapital
 
+![CI](https://github.com/josens83/Kapital/actions/workflows/ci.yml/badge.svg)
+![Deploy](https://github.com/josens83/Kapital/actions/workflows/deploy.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 복식부기 기반 개인 재무관리 앱 - 웹/iOS/Android
 
 ## 소개
@@ -96,6 +100,33 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 | 무료 | ₩0 | 3개 계좌, 월 50건 거래 |
 | 프리미엄 | ₩8,500/월 | 무제한 계좌/거래, 모든 재무제표, 예산 관리 |
 | 프리미엄+ | ₩12,500/월 | 은행 연동, 투자 추적, 가족 공유 |
+
+## CI/CD
+
+GitHub Actions를 통한 자동화 파이프라인:
+
+| 워크플로우 | 트리거 | 설명 |
+|-----------|--------|------|
+| CI | push, PR | 타입체크, 린트, 빌드 검증 |
+| Deploy | main 푸시 | 프로덕션 배포 |
+| Preview | PR | 미리보기 환경 배포 |
+
+### GitHub Secrets 설정
+
+```
+# 필수
+NEXT_PUBLIC_SUPABASE_URL      - Supabase 프로젝트 URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY - Supabase anon key
+
+# Vercel 배포 (선택)
+VERCEL_TOKEN      - Vercel 액세스 토큰
+VERCEL_ORG_ID     - Vercel 조직 ID
+VERCEL_PROJECT_ID - Vercel 프로젝트 ID
+
+# 알림 (선택)
+DISCORD_WEBHOOK   - Discord 웹훅 URL
+SLACK_WEBHOOK     - Slack 웹훅 URL
+```
 
 ## 라이선스
 

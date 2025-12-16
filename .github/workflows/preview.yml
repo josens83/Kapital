@@ -1,0 +1,173 @@
+# Kapital PR Preview Deployment
+# 챕터 5.8: PR 미리보기 배포
+#
+# PR마다 미리보기 환경을 자동 생성하고 댓글로 URL 공유
+
+name: Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_VERSION: '20'
+  SKIP_ENV_VALIDATION: true
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════
+  # Job 1: 미리보기 배포
+  # ═══════════════════════════════════════════════════════════════
+  preview:
+    name: 🔍 미리보기 배포
+    runs-on: ubuntu-latest
+    # VERCEL_TOKEN이 설정된 경우에만 실행
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build with Vercel
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy Preview
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # PR에 미리보기 URL 댓글 추가
+      - name: PR 댓글 작성
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const body = `## 🚀 미리보기 배포 완료!
+
+            | 항목 | 값 |
+            |------|-----|
+            | **미리보기 URL** | ${url} |
+            | **커밋** | \`${{ github.event.pull_request.head.sha }}\` |
+            | **브랜치** | \`${{ github.head_ref }}\` |
+
+            ---
+            *이 미리보기는 PR이 업데이트될 때마다 자동으로 갱신됩니다.*`;
+
+            // 기존 봇 댓글 찾기
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('미리보기 배포 완료')
+            );
+
+            if (botComment) {
+              // 기존 댓글 업데이트
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // 새 댓글 작성
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: 배포 URL 출력
+        run: |
+          echo "✅ 미리보기 배포 완료!"
+          echo "URL: ${{ steps.deploy.outputs.url }}"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Job 2: Vercel 미설정 시 검증만 실행
+  # ═══════════════════════════════════════════════════════════════
+  validate-only:
+    name: 🔍 코드 검증
+    runs-on: ubuntu-latest
+    if: ${{ secrets.VERCEL_TOKEN == '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Build test
+        run: npm run build:web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: 'https://placeholder.supabase.co'
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: 'placeholder-key'
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_placeholder'
+
+      - name: 미리보기 안내
+        run: |
+          echo "ℹ️ Vercel 미리보기 배포가 설정되지 않았습니다."
+          echo ""
+          echo "미리보기 배포를 활성화하려면 다음 Secrets를 설정하세요:"
+          echo "  - VERCEL_TOKEN"
+          echo "  - VERCEL_ORG_ID"
+          echo "  - VERCEL_PROJECT_ID"
