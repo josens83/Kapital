@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Button, Card, CardContent, CardHeader, CardTitle, Progress, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@kapital/ui';
 import { formatCurrency, formatPercent } from '@kapital/utils';
-import { Plus, Target, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Target, AlertTriangle, CheckCircle, ChevronRight } from 'lucide-react';
 
 // 데모 데이터
 const budgetsData = [
@@ -107,65 +108,68 @@ export default function BudgetsPage() {
           const isWarning = percentage >= 80 && percentage < 100;
 
           return (
-            <Card key={budget.id} className="overflow-hidden">
-              <CardContent className="p-0">
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-                        style={{ backgroundColor: `${budget.color}20` }}
-                      >
-                        {budget.icon}
+            <Link key={budget.id} href={`/budgets/${budget.id}`}>
+              <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-0">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                          style={{ backgroundColor: `${budget.color}20` }}
+                        >
+                          {budget.icon}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{budget.name}</h3>
+                          <p className="text-sm text-gray-500">
+                            {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{budget.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        {isOverBudget ? (
+                          <div className="flex items-center gap-1 text-red-500">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="text-sm font-medium">초과</span>
+                          </div>
+                        ) : isWarning ? (
+                          <div className="flex items-center gap-1 text-yellow-500">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="text-sm font-medium">주의</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-emerald-500">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-sm font-medium">정상</span>
+                          </div>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
                       </div>
                     </div>
-                    <div className="text-right">
-                      {isOverBudget ? (
-                        <div className="flex items-center gap-1 text-red-500">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span className="text-sm font-medium">초과</span>
-                        </div>
-                      ) : isWarning ? (
-                        <div className="flex items-center gap-1 text-yellow-500">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span className="text-sm font-medium">주의</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-emerald-500">
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="text-sm font-medium">정상</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Progress
-                      value={Math.min(percentage, 100)}
-                      className="h-2"
-                      indicatorClassName={
-                        isOverBudget ? 'bg-red-500' :
-                        isWarning ? 'bg-yellow-500' : 'bg-emerald-500'
-                      }
-                    />
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">
-                        {formatPercent(percentage, { decimals: 0 })} 사용
-                      </span>
-                      <span className={remaining >= 0 ? 'text-emerald-500' : 'text-red-500'}>
-                        {remaining >= 0 ? `${formatCurrency(remaining)} 남음` : `${formatCurrency(Math.abs(remaining))} 초과`}
-                      </span>
+                    <div className="space-y-2">
+                      <Progress
+                        value={Math.min(percentage, 100)}
+                        className="h-2"
+                        indicatorClassName={
+                          isOverBudget ? 'bg-red-500' :
+                          isWarning ? 'bg-yellow-500' : 'bg-emerald-500'
+                        }
+                      />
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">
+                          {formatPercent(percentage, { decimals: 0 })} 사용
+                        </span>
+                        <span className={remaining >= 0 ? 'text-emerald-500' : 'text-red-500'}>
+                          {remaining >= 0 ? `${formatCurrency(remaining)} 남음` : `${formatCurrency(Math.abs(remaining))} 초과`}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>

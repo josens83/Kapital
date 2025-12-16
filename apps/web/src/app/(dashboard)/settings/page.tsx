@@ -265,20 +265,20 @@ export default function SettingsPage() {
             </div>
             <ChevronRight className="h-5 w-5 text-gray-400" />
           </Link>
-          <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
+          <Link href="/settings/notifications" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
             <div className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-gray-400" />
               <span>알림 설정</span>
             </div>
             <ChevronRight className="h-5 w-5 text-gray-400" />
-          </button>
-          <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
+          </Link>
+          <Link href="/settings/security" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
             <div className="flex items-center gap-3">
               <Shield className="h-5 w-5 text-gray-400" />
               <span>보안 설정</span>
             </div>
             <ChevronRight className="h-5 w-5 text-gray-400" />
-          </button>
+          </Link>
           <Link href="/settings/export" className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b">
             <div className="flex items-center gap-3">
               <Database className="h-5 w-5 text-gray-400" />

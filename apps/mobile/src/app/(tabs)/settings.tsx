@@ -93,12 +93,25 @@ export default function SettingsScreen() {
           <SettingsItem icon="globe-outline" label="언어" value="한국어" />
           <SettingsItem icon="cash-outline" label="기본 통화" value="KRW" />
           <SettingsItem
+            icon="color-palette-outline"
+            label="테마 설정"
+            onPress={() => router.push('/settings/appearance')}
+          />
+          <SettingsItem
             icon="notifications-outline"
             label="알림 설정"
             onPress={() => router.push('/settings/notifications')}
           />
-          <SettingsItem icon="lock-closed-outline" label="보안" />
-          <SettingsItem icon="cloud-upload-outline" label="데이터 백업" />
+          <SettingsItem
+            icon="lock-closed-outline"
+            label="보안"
+            onPress={() => router.push('/settings/security')}
+          />
+          <SettingsItem
+            icon="download-outline"
+            label="데이터 내보내기"
+            onPress={() => router.push('/settings/export')}
+          />
         </View>
 
         {/* Support */}

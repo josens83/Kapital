@@ -8,4 +8,5 @@ export * from './components/select';
 export * from './components/progress';
 export * from './components/tabs';
 export * from './components/avatar';
+export * from './components/switch';
 export { cn } from './lib/utils';

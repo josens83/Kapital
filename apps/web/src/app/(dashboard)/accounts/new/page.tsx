@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { Button, Card, CardContent, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@kapital/ui';
 import { ArrowLeft } from 'lucide-react';
 
@@ -46,20 +47,109 @@ export default function NewAccountPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim() || !subtype) {
+      alert('계정 이름과 종류를 선택해주세요.');
+      return;
+    }
+
     setLoading(true);
 
-    // TODO: API 호출
-    console.log({
-      accountType,
-      subtype,
-      name,
-      initialBalance: parseFloat(initialBalance) || 0,
-      color: selectedColor,
-    });
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
 
-    setTimeout(() => {
+      if (!user) {
+        alert('로그인이 필요합니다.');
+        router.push('/login');
+        return;
+      }
+
+      // Get icon for subtype
+      const selectedSubtype = subtypes.find(s => s.value === subtype);
+      const icon = selectedSubtype?.icon || '💳';
+
+      // Create account
+      const { data: account, error: accountError } = await supabase
+        .from('accounts')
+        .insert({
+          user_id: user.id,
+          name: name.trim(),
+          account_type: accountType,
+          account_subtype: subtype,
+          currency: 'KRW',
+          icon,
+          color: selectedColor,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (accountError) throw accountError;
+
+      // Create initial balance journal entry if provided
+      const balance = parseFloat(initialBalance) || 0;
+      if (balance !== 0 && account) {
+        // Get or create opening balance equity account
+        let equityAccount = await supabase
+          .from('accounts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('name', '기초잔액')
+          .single();
+
+        let equityAccountId = equityAccount.data?.id;
+
+        if (!equityAccountId) {
+          const { data: newEquity } = await supabase
+            .from('accounts')
+            .insert({
+              user_id: user.id,
+              name: '기초잔액',
+              account_type: 'EQUITY',
+              currency: 'KRW',
+              is_active: true,
+            })
+            .select()
+            .single();
+          equityAccountId = newEquity?.id;
+        }
+
+        if (equityAccountId) {
+          // Create journal entry
+          const { data: entry } = await supabase
+            .from('journal_entries')
+            .insert({
+              user_id: user.id,
+              entry_date: new Date().toISOString().split('T')[0],
+              description: `${name} 기초잔액 설정`,
+            })
+            .select()
+            .single();
+
+          if (entry) {
+            // Create transaction lines (double-entry)
+            const lines = accountType === 'ASSET'
+              ? [
+                  { journal_entry_id: entry.id, account_id: account.id, amount: balance }, // Debit
+                  { journal_entry_id: entry.id, account_id: equityAccountId, amount: -balance }, // Credit
+                ]
+              : [
+                  { journal_entry_id: entry.id, account_id: equityAccountId, amount: balance }, // Debit
+                  { journal_entry_id: entry.id, account_id: account.id, amount: -balance }, // Credit
+                ];
+
+            await supabase.from('transaction_lines').insert(lines);
+          }
+        }
+      }
+
       router.push('/accounts');
-    }, 1000);
+    } catch (error) {
+      console.error('Error creating account:', error);
+      alert('계정 생성에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
