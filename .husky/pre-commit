@@ -1,15 +1,17 @@
 #!/bin/sh
 
-# 챕터 6: 배포 전 검증 자동화 기반
-# Pre-commit hook: 타입 체크 실행
+# 챕터 6: 배포 전 검증 자동화
+# Pre-commit hook: 스테이징된 파일 검증
 
-echo "🔍 Running pre-commit checks..."
+echo "🔍 커밋 전 검증 시작..."
 
-# TypeScript 타입 체크만 실행 (린트는 CI에서)
-npm run typecheck
+# lint-staged 실행 (스테이징된 파일만 검사)
+npx lint-staged
 if [ $? -ne 0 ]; then
-  echo "❌ TypeScript check failed"
+  echo ""
+  echo "❌ 검증 실패! 오류를 수정한 후 다시 커밋하세요."
   exit 1
 fi
 
-echo "✅ Pre-commit checks passed"
+echo ""
+echo "✅ 커밋 전 검증 완료!"

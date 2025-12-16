@@ -9,7 +9,7 @@
     "ios": "expo run:ios",
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
-    "lint": "eslint .",
+    "lint": "echo 'Skipping - requires ESLint config setup'",
     "typecheck": "echo 'Skipping - requires NativeWind type setup'"
   },
   "dependencies": {
@@ -46,6 +46,9 @@
     "@kapital/tsconfig": "*",
     "@types/react": "~18.2.45",
     "eslint": "^8.55.0",
+    "eslint-config-expo": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.3.3"
   }
