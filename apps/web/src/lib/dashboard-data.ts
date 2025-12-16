@@ -73,7 +73,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     .gte('journal_entries.entry_date', startOfMonth)
     .lte('journal_entries.entry_date', endOfMonth);
 
-  // 모든 거래내역 (잔액 계산용)
+  // 모든 거래내역 (현재 잔액 계산용)
   const { data: allLines } = await supabase
     .from('transaction_lines')
     .select(`
@@ -84,25 +84,57 @@ export async function getDashboardData(): Promise<DashboardData> {
     .eq('journal_entries.user_id', user.id)
     .eq('journal_entries.is_voided', false);
 
-  // 잔액 계산
+  // 지난달 말일까지의 거래내역 (지난달 순자산 계산용)
+  const { data: lastMonthLines } = await supabase
+    .from('transaction_lines')
+    .select(`
+      *,
+      account:accounts(*),
+      journal_entry:journal_entries!inner(*)
+    `)
+    .eq('journal_entries.user_id', user.id)
+    .eq('journal_entries.is_voided', false)
+    .lte('journal_entries.entry_date', endOfLastMonth);
+
+  // 현재 잔액 계산
   const balances = new Map<string, number>();
   allLines?.forEach((line: any) => {
     const current = balances.get(line.account_id) || 0;
     balances.set(line.account_id, current + parseFloat(line.amount || '0'));
   });
 
+  // 지난달 말 잔액 계산
+  const lastMonthBalances = new Map<string, number>();
+  lastMonthLines?.forEach((line: any) => {
+    const current = lastMonthBalances.get(line.account_id) || 0;
+    lastMonthBalances.set(line.account_id, current + parseFloat(line.amount || '0'));
+  });
+
   // 순자산 계산 (자산 - 부채)
   let totalAssets = 0;
   let totalLiabilities = 0;
+  let lastMonthAssets = 0;
+  let lastMonthLiabilities = 0;
+
   accounts?.forEach((account: any) => {
     const balance = balances.get(account.id) || 0;
+    const lastMonthBalance = lastMonthBalances.get(account.id) || 0;
+
     if (account.account_type === 'ASSET') {
       totalAssets += balance;
+      lastMonthAssets += lastMonthBalance;
     } else if (account.account_type === 'LIABILITY') {
       totalLiabilities += Math.abs(balance);
+      lastMonthLiabilities += Math.abs(lastMonthBalance);
     }
   });
+
   const netWorth = totalAssets - totalLiabilities;
+  const lastMonthNetWorth = lastMonthAssets - lastMonthLiabilities;
+  const netWorthChange = netWorth - lastMonthNetWorth;
+  const netWorthChangePercent = lastMonthNetWorth !== 0
+    ? (netWorthChange / Math.abs(lastMonthNetWorth)) * 100
+    : 0;
 
   // 이번 달 수입/지출 계산
   let monthIncome = 0;
@@ -188,8 +220,8 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   return {
     net_worth: netWorth,
-    net_worth_change: 0, // TODO: Calculate from previous month
-    net_worth_change_percent: 0,
+    net_worth_change: netWorthChange,
+    net_worth_change_percent: netWorthChangePercent,
     month_income: monthIncome,
     month_expenses: monthExpenses,
     month_budget: totalBudget || 4000000, // 기본 예산

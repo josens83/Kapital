@@ -103,11 +103,30 @@ export default function SecuritySettingsScreen() {
 
   const togglePin = () => {
     if (!settings.pinEnabled) {
-      // TODO: Navigate to PIN setup screen
-      Alert.alert('준비 중', 'PIN 설정 기능은 준비 중입니다.');
+      // Navigate to PIN setup screen
+      router.push('/settings/pin?mode=setup');
     } else {
-      saveSettings({ ...settings, pinEnabled: false });
+      // Confirm before disabling
+      Alert.alert(
+        'PIN 비활성화',
+        'PIN 잠금을 비활성화하시겠습니까?',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '비활성화',
+            style: 'destructive',
+            onPress: async () => {
+              await AsyncStorage.removeItem('@kapital_pin');
+              saveSettings({ ...settings, pinEnabled: false });
+            },
+          },
+        ]
+      );
     }
+  };
+
+  const changePIN = () => {
+    router.push('/settings/pin?mode=change');
   };
 
   const toggleAutoLock = () => {
@@ -189,7 +208,10 @@ export default function SecuritySettingsScreen() {
             </View>
 
             {settings.pinEnabled && (
-              <TouchableOpacity className="flex-row items-center px-4 py-4">
+              <TouchableOpacity
+                className="flex-row items-center px-4 py-4"
+                onPress={changePIN}
+              >
                 <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
                   <Ionicons name="refresh" size={20} color="#6B7280" />
                 </View>
