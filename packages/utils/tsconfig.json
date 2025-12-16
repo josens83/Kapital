@@ -1,0 +1,12 @@
+{
+  "extends": "@kapital/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "target": "ES2017",
+    "baseUrl": ".",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

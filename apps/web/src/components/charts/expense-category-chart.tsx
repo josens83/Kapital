@@ -35,8 +35,10 @@ export function ExpenseCategoryChart({ data }: ExpenseCategoryChartProps) {
           </Pie>
           <Tooltip
             content={({ active, payload }) => {
-              if (active && payload && payload.length) {
-                const item = payload[0].payload as ExpenseData;
+              if (active && payload && payload.length > 0) {
+                const firstPayload = payload[0];
+                if (!firstPayload) return null;
+                const item = firstPayload.payload as ExpenseData;
                 return (
                   <div className="bg-white p-3 rounded-lg shadow-lg border">
                     <p className="text-sm font-medium">{item.category}</p>

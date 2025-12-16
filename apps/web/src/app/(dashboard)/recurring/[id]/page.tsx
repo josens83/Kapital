@@ -107,7 +107,7 @@ export default function EditRecurringPage() {
       setFromAccount('2');
       setToAccount('7');
       setFrequency('monthly');
-      setNextDate(new Date().toISOString().split('T')[0]);
+      setNextDate(new Date().toISOString().split('T')[0] ?? '');
       setIsActive(true);
     } finally {
       setLoading(false);

@@ -110,8 +110,10 @@ export function maskAccountNumber(accountNumber: string): string {
  * @example maskEmail("test@example.com") // "te**@example.com"
  */
 export function maskEmail(email: string): string {
-  const [local, domain] = email.split('@');
-  if (!domain) return email;
+  const parts = email.split('@');
+  const local = parts[0];
+  const domain = parts[1];
+  if (!local || !domain) return email;
   const maskedLocal = local.length > 2
     ? local.slice(0, 2) + '*'.repeat(Math.min(local.length - 2, 4))
     : local;

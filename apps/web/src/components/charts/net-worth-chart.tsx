@@ -34,12 +34,14 @@ export function NetWorthChart() {
           />
           <Tooltip
             content={({ active, payload }) => {
-              if (active && payload && payload.length) {
+              if (active && payload && payload.length > 0) {
+                const firstPayload = payload[0];
+                if (!firstPayload) return null;
                 return (
                   <div className="bg-white p-3 rounded-lg shadow-lg border">
-                    <p className="text-sm text-gray-500">{payload[0].payload.month}</p>
+                    <p className="text-sm text-gray-500">{firstPayload.payload?.month}</p>
                     <p className="text-lg font-bold font-currency">
-                      {formatCurrency(payload[0].value as number)}
+                      {formatCurrency(firstPayload.value as number)}
                     </p>
                   </div>
                 );
